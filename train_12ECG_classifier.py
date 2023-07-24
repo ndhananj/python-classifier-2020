@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import numpy as np, os, sys, joblib
+import numpy as np, os, sys, joblib, re
 from scipy.io import loadmat
 from sklearn.impute import SimpleImputer
 from sklearn.ensemble import RandomForestClassifier
@@ -15,7 +15,7 @@ def train_12ECG_classifier(input_directory, output_directory):
         g = os.path.join(input_directory, f)
         if not f.lower().startswith('.') and f.lower().endswith('hea') and os.path.isfile(g):
             header_files.append(g)
-
+            
     classes = get_classes(input_directory, header_files)
     num_classes = len(classes)
     num_files = len(header_files)
@@ -36,11 +36,11 @@ def train_12ECG_classifier(input_directory, output_directory):
     for i in range(num_files):
         recording = recordings[i]
         header = headers[i]
-
         tmp = get_12ECG_features(recording, header)
         features.append(tmp)
 
         for l in header:
+            l = re.sub('#\s+','#',l)
             if l.startswith('#Dx:'):
                 labels_act = np.zeros(num_classes)
                 arrs = l.strip().split(' ')
@@ -51,7 +51,7 @@ def train_12ECG_classifier(input_directory, output_directory):
 
     features = np.array(features)
     labels = np.array(labels)
-
+ 
     # Replace NaN values with mean values
     imputer=SimpleImputer().fit(features)
     features=imputer.transform(features)
@@ -82,6 +82,7 @@ def get_classes(input_directory, filenames):
     for filename in filenames:
         with open(filename, 'r') as f:
             for l in f:
+                l = re.sub('#\s+','#',l)
                 if l.startswith('#Dx'):
                     tmp = l.split(': ')[1].split(',')
                     for c in tmp:
